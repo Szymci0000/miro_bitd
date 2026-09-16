@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="280" height="48" viewBox="0 0 280 48">
+  <!--
+    Custom progress track example.
+    Required: data-slot="1" & data-slot="N" (or id="slot-1") in fill order.
+    Optional: id="base", id="overlay"
+    Optional: data-role="empty" / data-role="filled" instead of recoloring one shape.
+  -->
+  <g id="base">
+    <rect x="0" y="0" width="280" height="48" rx="10" fill="#f5f5f7"/>
+  </g>
+  <rect id="slot-1" data-slot="1" x="8" y="8" width="40" height="32" rx="6" fill="#e8edff" stroke="#050038" stroke-width="2"/>
+  <rect id="slot-2" data-slot="2" x="56" y="8" width="40" height="32" rx="6" fill="#e8edff" stroke="#050038" stroke-width="2"/>
+  <rect id="slot-3" data-slot="3" x="104" y="8" width="40" height="32" rx="6" fill="#e8edff" stroke="#050038" stroke-width="2"/>
+  <rect id="slot-4" data-slot="4" x="152" y="8" width="40" height="32" rx="6" fill="#e8edff" stroke="#050038" stroke-width="2"/>
+  <rect id="slot-5" data-slot="5" x="200" y="8" width="40" height="32" rx="6" fill="#e8edff" stroke="#050038" stroke-width="2"/>
+  <rect id="slot-6" data-slot="6" x="248" y="8" width="40" height="32" rx="6" fill="#e8edff" stroke="#050038" stroke-width="2"/>
+</svg>

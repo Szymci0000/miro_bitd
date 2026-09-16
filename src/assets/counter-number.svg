@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140" viewBox="0 0 140 140">
+  <!-- Number layer only (transparent background). {{value}} is replaced at runtime. -->
+  <text
+    x="70"
+    y="70"
+    dominant-baseline="central"
+    text-anchor="middle"
+    fill="#ffffff"
+    font-size="48"
+    font-family="Arial, Helvetica, sans-serif"
+    font-weight="700"
+  >{{value}}</text>
+</svg>

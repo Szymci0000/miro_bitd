@@ -11,7 +11,7 @@ dns.setDefaultResultOrder('verbatim');
 const allHtmlEntries = fs
   .readdirSync('.')
   .filter((file) => path.extname(file) === '.html')
-  .reduce((acc, file) => {
+  .reduce<Record<string, string>>((acc, file) => {
     acc[path.basename(file, '.html')] = path.resolve(__dirname, file);
 
     return acc;
@@ -27,5 +27,8 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 3000,
+    // Fail instead of silently switching to 3001 — Miro sdkUri must match.
+    strictPort: true,
+    cors: true,
   },
 });

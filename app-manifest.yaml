@@ -1,8 +1,9 @@
 # Paste into Miro app settings → Edit in Manifest
-# See https://developers.miro.com/docs/app-manifest
-appName: Miro App
+# sdkUri must match the URL printed by `npm start` (default: http://localhost:3000)
+appName: BitD
 sdkVersion: SDK_V2
 sdkUri: http://localhost:3000
 scopes:
   - boards:read
   - boards:write
+  - identity:read

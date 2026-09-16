@@ -2,7 +2,7 @@
 # sdkUri must match the URL printed by `npm start` (default: http://localhost:3000)
 appName: BitD
 sdkVersion: SDK_V2
-sdkUri: http://localhost:3000
+sdkUri: https://gleaming-moxie-a86777.netlify.app/
 scopes:
   - boards:read
   - boards:write

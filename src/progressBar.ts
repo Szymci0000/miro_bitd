@@ -5,6 +5,7 @@ import {
   DEFAULT_FILL_COLOR,
   DEFAULT_STROKE_COLOR,
 } from './progressClockSvg';
+import {selectCreated, viewportCenter} from './boardPlacement';
 import {
   BAR_WIDTH,
   buildProgressBarDataUrl,
@@ -227,10 +228,13 @@ export async function createProgressBar(
   config: Partial<ProgressBarConfig> = {},
 ): Promise<Image> {
   const next = normalizeBarConfig(config);
+  const {x, y} = await viewportCenter();
   const bar = await miro.board.createImage({
     title: `Progress bar (${next.filled}/${next.steps})`,
     url: buildProgressBarDataUrl(next),
     width: BAR_WIDTH,
+    x,
+    y,
   });
 
   await Promise.all([
@@ -240,6 +244,7 @@ export async function createProgressBar(
 
   barById.set(bar.id, bar);
   stateById.set(bar.id, next);
+  await selectCreated(bar);
   return bar;
 }
 

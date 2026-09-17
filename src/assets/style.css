@@ -188,3 +188,13 @@ code {
 .template-item .button {
   flex: 0 0 auto;
 }
+
+.template-item-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xsmall, 4px);
+}
+
+.template-item-actions .button {
+  min-width: 72px;
+}

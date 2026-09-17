@@ -5,6 +5,7 @@ import {
   DEFAULT_FILL_COLOR,
   DEFAULT_STROKE_COLOR,
 } from './progressClockSvg';
+import {selectCreated, viewportCenter} from './boardPlacement';
 import {
   buildClockImageUrl,
   clockImageWidth,
@@ -281,10 +282,13 @@ export async function createProgressClock(
     });
   }
 
+  const {x, y} = await viewportCenter();
   const clock = await miro.board.createImage({
     title: `${template?.name ?? 'Progress clock'} (${next.filled}/${next.segments})`,
     url: await buildClockImageUrl(next),
     width: await clockImageWidth(next),
+    x,
+    y,
   });
 
   await Promise.all([
@@ -294,6 +298,7 @@ export async function createProgressClock(
 
   clockById.set(clock.id, clock);
   stateById.set(clock.id, next);
+  await selectCreated(clock);
   return clock;
 }
 

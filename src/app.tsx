@@ -213,8 +213,7 @@ const CreateView: React.FC = () => {
   const handleCreateCounter = async () => {
     setIsCreatingCounter(true);
     try {
-      const counter = await createCounter(0);
-      await miro.board.viewport.zoomTo(counter);
+      await createCounter(0);
     } finally {
       setIsCreatingCounter(false);
     }
@@ -244,7 +243,7 @@ const CreateView: React.FC = () => {
     setError(null);
     setIsCreatingClock(true);
     try {
-      const clock = await createProgressClock({
+      await createProgressClock({
         templateId: selectedTemplate?.id ?? PIE_TEMPLATE_ID,
         segments: isPie ? nextSegments : templateSegments,
         filled: nextFilled,
@@ -252,7 +251,26 @@ const CreateView: React.FC = () => {
         emptyColor,
         strokeColor,
       });
-      await miro.board.viewport.zoomTo(clock);
+    } finally {
+      setIsCreatingClock(false);
+    }
+  };
+
+  const handleAddSavedTemplate = async (template: ClockTemplate) => {
+    setError(null);
+    setIsCreatingClock(true);
+    try {
+      await createProgressClock({
+        templateId: template.id,
+        segments: template.segments,
+        filled: 0,
+        fillColor,
+        emptyColor,
+        strokeColor,
+      });
+    } catch (err) {
+      console.error(err);
+      setError(err instanceof Error ? err.message : 'Failed to add template.');
     } finally {
       setIsCreatingClock(false);
     }
@@ -284,7 +302,7 @@ const CreateView: React.FC = () => {
     setError(null);
     setIsCreatingBar(true);
     try {
-      const bar = await createProgressBar({
+      await createProgressBar({
         steps: nextSteps,
         filled: nextFilled,
         tickEvery: nextTickEvery,
@@ -293,7 +311,6 @@ const CreateView: React.FC = () => {
         strokeColor,
         tickColor,
       });
-      await miro.board.viewport.zoomTo(bar);
     } finally {
       setIsCreatingBar(false);
     }
@@ -388,12 +405,17 @@ const CreateView: React.FC = () => {
           or this sidebar.
         </p>
       ) : tab === 'templates' ? (
-        <TemplateLibrary
-          onSaved={(template) => {
-            void reloadTemplates();
-            setTemplateId(template.id);
-          }}
-        />
+        <>
+          <TemplateLibrary
+            addingDisabled={isCreatingCounter || isCreatingClock || isCreatingBar}
+            onSaved={(template) => {
+              void reloadTemplates();
+              setTemplateId(template.id);
+            }}
+            onAddToBoard={(template) => void handleAddSavedTemplate(template)}
+          />
+          {error ? <p className="p-small">{error}</p> : null}
+        </>
       ) : tab === 'bar' ? (
         <form id="create-bar-form" onSubmit={handleCreateBar}>
           <p className="p-small">

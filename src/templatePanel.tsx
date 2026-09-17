@@ -38,7 +38,9 @@ function downloadExample(): void {
 
 export const TemplateLibrary: React.FC<{
   onSaved?: (template: ClockTemplate) => void;
-}> = ({onSaved}) => {
+  onAddToBoard?: (template: ClockTemplate) => void;
+  addingDisabled?: boolean;
+}> = ({onSaved, onAddToBoard, addingDisabled}) => {
   const [name, setName] = React.useState('');
   const [svg, setSvg] = React.useState<string | null>(null);
   const [preview, setPreview] = React.useState<string | null>(null);
@@ -192,21 +194,32 @@ export const TemplateLibrary: React.FC<{
                 <strong>{template.name}</strong>
                 <p className="p-small">{template.segments} slots</p>
               </div>
-              <button
-                className="button button-secondary"
-                type="button"
-                onClick={() => {
-                  void deleteTemplate(template.id).then(
-                    () => reloadSaved(),
-                    (err) => {
-                      console.error(err);
-                      setError('Failed to delete template.');
-                    },
-                  );
-                }}
-              >
-                Delete
-              </button>
+              <div className="template-item-actions">
+                <button
+                  className="button button-primary"
+                  type="button"
+                  disabled={addingDisabled}
+                  onClick={() => onAddToBoard?.(template)}
+                >
+                  Add
+                </button>
+                <button
+                  className="button button-secondary"
+                  type="button"
+                  disabled={addingDisabled}
+                  onClick={() => {
+                    void deleteTemplate(template.id).then(
+                      () => reloadSaved(),
+                      (err) => {
+                        console.error(err);
+                        setError('Failed to delete template.');
+                      },
+                    );
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -1,5 +1,6 @@
 import type {CustomEvent, Image} from '@mirohq/websdk-types';
 
+import {selectCreated, viewportCenter} from './boardPlacement';
 import {
   buildNumberDataUrl,
   buildShapeDataUrl,
@@ -101,10 +102,14 @@ export async function resolveNumberImage(item: {
 }
 
 export async function createCounter(initialValue = 0): Promise<Image> {
+  const {x, y} = await viewportCenter();
+
   const shape = await miro.board.createImage({
     title: 'Counter shape',
     url: buildShapeDataUrl(),
     width: COUNTER_SIZE,
+    x,
+    y,
   });
 
   // Number sits on top (same size) so a single click selects it.
@@ -114,8 +119,8 @@ export async function createCounter(initialValue = 0): Promise<Image> {
     title: `Counter ${initialValue}`,
     url: buildNumberDataUrl(initialValue),
     width: COUNTER_SIZE,
-    x: shape.x,
-    y: shape.y,
+    x,
+    y,
   });
 
   await shape.setMetadata(COUNTER_METADATA_KIND, COUNTER_KIND);
@@ -128,6 +133,7 @@ export async function createCounter(initialValue = 0): Promise<Image> {
   await number.setMetadata(COUNTER_METADATA_VALUE, initialValue);
 
   await number.bringToFront();
+  await selectCreated(number);
 
   return number;
 }

@@ -45,6 +45,7 @@ import {
   clampBarFilled,
 } from './progressBarSvg';
 import {TemplateLibrary} from './templatePanel';
+import {identifySelection, type SelectedWidget} from './selectedWidget';
 import '../src/assets/style.css';
 
 function getPanelParams() {
@@ -1304,21 +1305,33 @@ const BarControls: React.FC<{itemId: string}> = ({itemId}) => {
 };
 
 const App: React.FC = () => {
-  const {itemId, kind} = getPanelParams();
+  const initial = getPanelParams();
+  const [selection, setSelection] = React.useState<SelectedWidget | null>(
+    initial.itemId && initial.kind
+      ? {itemId: initial.itemId, kind: initial.kind}
+      : null,
+  );
 
-  if (!itemId) {
+  React.useEffect(() => {
+    void miro.board.ui.on('selection:update', async ({items}) => {
+      const next = await identifySelection(items);
+      setSelection(next);
+    });
+  }, []);
+
+  if (!selection) {
     return <CreateView />;
   }
 
-  if (kind === 'clock') {
-    return <ClockControls itemId={itemId} />;
+  if (selection.kind === 'clock') {
+    return <ClockControls itemId={selection.itemId} />;
   }
 
-  if (kind === 'bar') {
-    return <BarControls itemId={itemId} />;
+  if (selection.kind === 'bar') {
+    return <BarControls itemId={selection.itemId} />;
   }
 
-  return <CounterControls itemId={itemId} />;
+  return <CounterControls itemId={selection.itemId} />;
 };
 
 const container = document.getElementById('root');

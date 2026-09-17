@@ -4,16 +4,19 @@ import {
   adjustCounter,
   COUNTER_KIND,
   COUNTER_METADATA_KIND,
-  resolveNumberImage,
   syncCounterPairPosition,
 } from './counter';
 import {
   adjustIfClock,
   CLOCK_KIND,
-  getClockState,
 } from './progressClock';
-import {adjustIfBar, BAR_KIND, getBarState} from './progressBar';
+import {adjustIfBar, BAR_KIND} from './progressBar';
 import {trackItemGeometry} from './liveImage';
+import {
+  identifySelection,
+  panelUrl,
+  type SelectedWidget,
+} from './selectedWidget';
 
 /** Match counters, clocks, and progress bars (shared metadata key: kind). */
 const adjustablePredicate = {
@@ -24,7 +27,10 @@ const adjustablePredicate = {
 };
 
 let lastPanelKey: string | null = null;
+let panelIsOpen = false;
 let selectionPanelTimer: ReturnType<typeof setTimeout> | null = null;
+let customEventsBound = false;
+let actionsRegistered = false;
 
 async function adjustSelected(event: CustomEvent, delta: number) {
   const item = event.items[0];
@@ -43,59 +49,73 @@ async function adjustSelected(event: CustomEvent, delta: number) {
   await adjustCounter(event, delta);
 }
 
-async function openItemPanel(
-  itemId: string,
-  kind: 'counter' | 'clock' | 'bar',
-): Promise<void> {
-  const panelKey = `${kind}:${itemId}`;
-  if (lastPanelKey === panelKey) {
+async function openItemPanel(widget: SelectedWidget): Promise<void> {
+  const panelKey = `${widget.kind}:${widget.itemId}`;
+  if (panelIsOpen && lastPanelKey === panelKey) {
     return;
   }
+
   lastPanelKey = panelKey;
 
-  await miro.board.ui.openPanel({
-    url: `app.html?itemId=${encodeURIComponent(itemId)}&kind=${kind}`,
-  });
+  try {
+    const opened = await miro.board.ui.openPanel({
+      url: panelUrl(widget),
+    });
+
+    const waitForClose = (
+      opened as {waitForClose?: () => Promise<unknown>} | undefined
+    )?.waitForClose;
+    if (typeof waitForClose === 'function') {
+      panelIsOpen = true;
+      void waitForClose().finally(() => {
+        if (lastPanelKey === panelKey) {
+          panelIsOpen = false;
+          lastPanelKey = null;
+        }
+      });
+    } else {
+      panelIsOpen = false;
+      lastPanelKey = null;
+    }
+  } catch (error) {
+    panelIsOpen = false;
+    lastPanelKey = null;
+    console.error('Failed to open item panel', error);
+  }
 }
 
 async function openPanelForSelection(
   items: Array<{type: string; id: string}>,
 ): Promise<void> {
-  if (items.length !== 1) {
+  const widget = await identifySelection(items);
+  if (!widget) {
     return;
   }
 
-  const item = items[0];
-
-  if (await getClockState(item)) {
-    await openItemPanel(item.id, 'clock');
-    return;
-  }
-
-  if (await getBarState(item)) {
-    await openItemPanel(item.id, 'bar');
-    return;
-  }
-
-  const numberImage = await resolveNumberImage(item);
-  if (numberImage) {
-    await openItemPanel(numberImage.id, 'counter');
-  }
+  await openItemPanel(widget);
 }
 
 async function openSelectedItemPanel(event: CustomEvent) {
   lastPanelKey = null;
+  panelIsOpen = false;
   await openPanelForSelection(event.items);
 }
 
 async function registerBoardActions() {
-  await miro.board.ui.on('custom:item-decrement', (event) =>
-    adjustSelected(event, -1),
-  );
-  await miro.board.ui.on('custom:item-increment', (event) =>
-    adjustSelected(event, 1),
-  );
-  await miro.board.ui.on('custom:item-controls', openSelectedItemPanel);
+  if (!customEventsBound) {
+    await miro.board.ui.on('custom:item-decrement', (event) =>
+      adjustSelected(event, -1),
+    );
+    await miro.board.ui.on('custom:item-increment', (event) =>
+      adjustSelected(event, 1),
+    );
+    await miro.board.ui.on('custom:item-controls', openSelectedItemPanel);
+    customEventsBound = true;
+  }
+
+  if (actionsRegistered) {
+    return;
+  }
 
   for (const eventName of [
     'item-decrement',
@@ -148,7 +168,7 @@ async function registerBoardActions() {
       ui: {
         label: 'Controls',
         description: 'Open -1 / +1 controls in the sidebar',
-        icon: 'square-pencil',
+        icon: 'edit',
         position: 3,
       },
     },
@@ -159,11 +179,10 @@ async function registerBoardActions() {
       await miro.board.experimental.action.register(action);
     } catch (error) {
       console.error(`Failed to register action ${action.event}`, error);
-      await miro.board.notifications.showError(
-        `Failed to register ${action.ui?.label ?? action.event}`,
-      );
     }
   }
+
+  actionsRegistered = true;
 }
 
 export async function init() {
@@ -171,10 +190,23 @@ export async function init() {
 
   await miro.board.ui.on('icon:click', async () => {
     lastPanelKey = null;
-    await miro.board.ui.openPanel({url: 'app.html'});
+    panelIsOpen = false;
+
+    try {
+      const selected = await miro.board.getSelection();
+      const widget = await identifySelection(selected);
+      if (widget) {
+        await openItemPanel(widget);
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to open panel for selection', error);
+    }
+
+    await miro.board.ui.openPanel({url: panelUrl()});
   });
 
-  // Selecting a counter/clock opens sidebar with -1/+1.
+  // Selecting a counter/clock/bar opens sidebar with -1/+1.
   await miro.board.ui.on('selection:update', ({items}) => {
     if (selectionPanelTimer) {
       clearTimeout(selectionPanelTimer);
@@ -184,13 +216,17 @@ export async function init() {
     }, 150);
   });
 
-  await miro.board.ui.on('experimental:items:update', async ({items}) => {
-    await Promise.all(
-      items.map((item: {type: string; id: string}) =>
-        syncCounterPairPosition(item),
-      ),
-    );
-  });
+  try {
+    await miro.board.ui.on('experimental:items:update', async ({items}) => {
+      await Promise.all(
+        items.map((item: {type: string; id: string}) =>
+          syncCounterPairPosition(item),
+        ),
+      );
+    });
+  } catch (error) {
+    console.error('Failed to subscribe to item updates', error);
+  }
 
   try {
     await registerBoardActions();

@@ -11,6 +11,7 @@ import {
   getTemplate,
   PIE_TEMPLATE_ID,
 } from './clockTemplates';
+import {getLiveImage} from './liveImage';
 
 export const CLOCK_KIND = 'progress-clock';
 export const CLOCK_METADATA_KIND = 'kind';
@@ -178,11 +179,20 @@ async function writeClock(
   next.segments = segments;
   next.filled = clampFilled(next.filled, segments);
 
-  clock.title = `${template?.name ?? 'Progress clock'} (${next.filled}/${next.segments})`;
-  clock.url = await buildClockImageUrl(next);
-  await clock.sync();
-  await clock.setMetadata(CLOCK_METADATA_CONFIG, next);
-  stateById.set(clock.id, next);
+  const title = `${template?.name ?? 'Progress clock'} (${next.filled}/${next.segments})`;
+  const url = await buildClockImageUrl(next);
+
+  const live = await getLiveImage(clock.id);
+  if (!live) {
+    return;
+  }
+
+  live.title = title;
+  live.url = url;
+  await live.sync();
+  await live.setMetadata(CLOCK_METADATA_CONFIG, next);
+  clockById.set(live.id, live);
+  stateById.set(live.id, next);
 }
 
 async function applyClockConfig(

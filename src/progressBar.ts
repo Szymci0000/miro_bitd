@@ -13,6 +13,7 @@ import {
   clampTickEvery,
   type ProgressBarVisual,
 } from './progressBarSvg';
+import {getLiveImage} from './liveImage';
 
 export const BAR_KIND = 'progress-bar';
 export const BAR_METADATA_KIND = 'kind';
@@ -134,11 +135,20 @@ async function writeBar(bar: Image, next: ProgressBarConfig): Promise<void> {
   next.strokeColor = normalized.strokeColor;
   next.tickColor = normalized.tickColor;
 
-  bar.title = `Progress bar (${next.filled}/${next.steps})`;
-  bar.url = buildProgressBarDataUrl(next);
-  await bar.sync();
-  await bar.setMetadata(BAR_METADATA_CONFIG, next);
-  stateById.set(bar.id, next);
+  const title = `Progress bar (${next.filled}/${next.steps})`;
+  const url = buildProgressBarDataUrl(next);
+
+  const live = await getLiveImage(bar.id);
+  if (!live) {
+    return;
+  }
+
+  live.title = title;
+  live.url = url;
+  await live.sync();
+  await live.setMetadata(BAR_METADATA_CONFIG, next);
+  barById.set(live.id, live);
+  stateById.set(live.id, next);
 }
 
 async function applyBarConfig(

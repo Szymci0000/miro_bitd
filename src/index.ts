@@ -13,6 +13,7 @@ import {
   getClockState,
 } from './progressClock';
 import {adjustIfBar, BAR_KIND, getBarState} from './progressBar';
+import {trackItemGeometry} from './liveImage';
 
 /** Match counters, clocks, and progress bars (shared metadata key: kind). */
 const adjustablePredicate = {
@@ -166,6 +167,8 @@ async function registerBoardActions() {
 }
 
 export async function init() {
+  trackItemGeometry();
+
   await miro.board.ui.on('icon:click', async () => {
     lastPanelKey = null;
     await miro.board.ui.openPanel({url: 'app.html'});

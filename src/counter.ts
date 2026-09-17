@@ -5,6 +5,7 @@ import {
   buildShapeDataUrl,
   COUNTER_SIZE,
 } from './counterSvg';
+import {getLiveImage} from './liveImage';
 
 export const COUNTER_KIND = 'counter';
 export const COUNTER_METADATA_KIND = 'kind';
@@ -152,11 +153,19 @@ export async function setCounterValue(
     return;
   }
 
+  const title = `Counter ${value}`;
+  const url = buildNumberDataUrl(value);
+
   await withWriting(numberImage.id, async () => {
-    numberImage.title = `Counter ${value}`;
-    numberImage.url = buildNumberDataUrl(value);
-    await numberImage.sync();
-    await numberImage.setMetadata(COUNTER_METADATA_VALUE, value);
+    const live = await getLiveImage(numberImage.id);
+    if (!live) {
+      return;
+    }
+
+    live.title = title;
+    live.url = url;
+    await live.sync();
+    await live.setMetadata(COUNTER_METADATA_VALUE, value);
   });
 }
 
